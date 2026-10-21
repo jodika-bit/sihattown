@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SihatTown Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: three-pane demo console — scenario stepper | resident phone | caregiver / clinic / township views. Stacks on narrow screens. */
+:root{
+  --bg:#EAF0EF; --surface:#FFFFFF; --surface-2:#F4F7F6; --ink:#10242B; --muted:#56696E; --line:#D3DDDB;
+  --accent:#2C47CF; --accent-soft:#E3E8FB; --accent-ink:#FFFFFF;
+  --ok:#17804F; --ok-soft:#DDF2E7; --warn:#B86A00; --warn-soft:#FCEFD9; --bad:#C0262A; --bad-soft:#FBE2E2;
+  --park:#BFDCC9; --water:#C6DDEA; --bezel:#0E1A1F; --shadow:0 18px 40px -22px rgba(16,36,43,.45);
+  --f-display:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1518; --surface:#122127; --surface-2:#0F1C21; --ink:#E4EDEB; --muted:#93A7AB; --line:#24383F;
+  --accent:#8FA3FF; --accent-soft:#1C2752; --accent-ink:#0B1518;
+  --ok:#4CC58C; --ok-soft:#123326; --warn:#F2A642; --warn-soft:#3A2A10; --bad:#FF7070; --bad-soft:#3D1618;
+  --park:#1F4430; --water:#1B3646; --bezel:#05090B; --shadow:0 18px 40px -22px rgba(0,0,0,.8); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1518; --surface:#122127; --surface-2:#0F1C21; --ink:#E4EDEB; --muted:#93A7AB; --line:#24383F;
+  --accent:#8FA3FF; --accent-soft:#1C2752; --accent-ink:#0B1518;
+  --ok:#4CC58C; --ok-soft:#123326; --warn:#F2A642; --warn-soft:#3A2A10; --bad:#FF7070; --bad-soft:#3D1618;
+  --park:#1F4430; --water:#1B3646; --bezel:#05090B; --shadow:0 18px 40px -22px rgba(0,0,0,.8); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.pulse{width:44px;height:44px;border-radius:12px;background:var(--ink);display:grid;place-items:center;flex:none}
+.pulse svg{width:30px;height:30px}
+.brand h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+.tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+
+/* console grid */
+.console{display:grid;grid-template-columns:290px 380px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:1180px){.console{grid-template-columns:380px minmax(0,1fr)}.steps{grid-column:1/-1}}
+@media (max-width:820px){.console{grid-template-columns:minmax(0,1fr)}}
+
+/* stepper */
+.steps{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.steps h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.steplist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+@media (max-width:1180px) and (min-width:821px){.steplist{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}}
+.steplist button{width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:8px 10px;display:flex;gap:10px;align-items:flex-start;color:var(--muted)}
+.steplist button:hover{background:var(--surface-2)}
+.steplist .n{font-family:var(--f-data);font-size:12px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;flex:none;margin-top:1px}
+.steplist .t{font-weight:600;font-size:13.5px;line-height:1.35}
+.steplist li.done .n{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.steplist li.on button{background:var(--accent-soft);color:var(--ink)}
+.steplist li.on .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.narr{background:var(--surface-2);border-radius:12px;padding:12px 14px;font-size:13.5px;min-height:86px}
+.narr b{display:block;font-family:var(--f-display);font-size:15px;margin-bottom:2px}
+.ctrl{display:flex;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 14px;font-weight:600}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:6px 10px;font-size:12.5px}
+
+/* phone */
+.phonecol{display:flex;flex-direction:column;align-items:center;gap:10px}
+.phone{width:100%;max-width:372px;background:var(--bezel);border-radius:42px;padding:12px;box-shadow:var(--shadow)}
+.screen{background:var(--surface-2);border-radius:32px;overflow:hidden;height:720px;display:flex;flex-direction:column;position:relative}
+.sbar{display:flex;justify-content:space-between;padding:12px 24px 4px;font-size:12px;font-weight:700;font-family:var(--f-data)}
+.apphead{padding:6px 18px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.apphead h3{font-size:19px;font-weight:800;letter-spacing:-.01em}
+.apphead small{color:var(--muted);font-size:12px;display:block}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.lang button{border:0;background:none;padding:4px 9px;font-size:11.5px;font-weight:700;color:var(--muted)}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.appbody{flex:1;overflow-y:auto;padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+.tabs{display:flex;border-top:1px solid var(--line);background:var(--surface)}
+.tabs button{flex:1;border:0;background:none;padding:10px 4px 14px;font-size:11.5px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs button[aria-selected="true"]{color:var(--accent)}
+.tabs svg{width:20px;height:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+.status{border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:4px;border:1px solid transparent}
+.status.green{background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.status.amber{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.status.red{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;width:max-content}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.chip.green{color:var(--ok);background:var(--surface)}
+.chip.amber{color:var(--warn);background:var(--surface)}
+.chip.red{color:var(--bad);background:var(--surface)}
+.status h4{margin:4px 0 0;font-size:17px;font-family:var(--f-display);font-weight:800}
+.status p{margin:0;font-size:13px;color:var(--ink)}
+.reading{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.reading .big{font-family:var(--f-data);font-size:40px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.reading .unit{color:var(--muted);font-size:12px}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.measure{width:100%;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-weight:700;padding:13px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.measure.hint{animation:ring 1.6s ease-out infinite}
+@keyframes ring{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+.advice{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.advice li{display:flex;gap:10px;font-size:13px;align-items:flex-start}
+.advice li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--ink);margin-top:7px}
+.chart svg{width:100%;height:auto;display:block}
+.act{display:flex;flex-direction:column;gap:6px}
+.act .row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.act h5{margin:0;font-size:14.5px;font-family:var(--f-display);font-weight:700}
+.act p{margin:0;color:var(--muted);font-size:12.5px}
+.sug{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 6px;width:max-content}
+.join{border:1px solid var(--accent);color:var(--accent);background:none;border-radius:999px;padding:5px 12px;font-weight:700;font-size:12.5px;flex:none}
+.join.joined{background:var(--accent);color:var(--accent-ink)}
+.points{display:flex;justify-content:space-between;align-items:center}
+.points .mono{font-size:22px;font-weight:600}
+.toggle{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.toggle:last-child{border-bottom:0}
+.toggle h5{margin:0;font-size:14px;font-weight:700}
+.toggle p{margin:2px 0 0;color:var(--muted);font-size:12px}
+.sw{appearance:none;width:42px;height:24px;border-radius:999px;background:var(--line);position:relative;flex:none;cursor:pointer;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--surface);transition:transform .2s}
+.sw:checked{background:var(--ok)}
+.sw:checked::after{transform:translateX(18px)}
+.appt{border-left:4px solid var(--accent)}
+
+/* measurement sheet */
+.sheet{position:absolute;inset:0;background:color-mix(in srgb,var(--bezel) 55%,transparent);display:flex;align-items:flex-end}
+.sheet .panel{background:var(--surface);width:100%;border-radius:24px 24px 0 0;padding:18px;display:flex;flex-direction:column;gap:12px}
+.sheet h4{margin:0;font-family:var(--f-display);font-size:17px}
+.gauge{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0}
+.gauge svg{width:170px;height:170px}
+.gauge .val{font-family:var(--f-data);font-size:30px;font-weight:600}
+.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.fields input{font-family:var(--f-data);font-size:18px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);width:100%}
+.symp{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted)}
+.symp input{margin-top:3px}
+
+/* side panel */
+.side{background:var(--surface);border:1px solid var(--line);border-radius:16px;min-width:0;display:flex;flex-direction:column}
+.sidetabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sidetabs button{border:0;background:none;border-radius:10px;padding:8px 12px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:8px}
+.sidetabs button[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.badge{min-width:18px;height:18px;border-radius:999px;background:var(--bad);color:#fff;font-size:11px;display:inline-grid;place-items:center;padding:0 5px;font-family:var(--f-data)}
+.sidebody{padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.who{display:flex;gap:12px;align-items:center}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:800;flex:none}
+.who h3{font-size:18px}
+.who p{margin:0;color:var(--muted);font-size:12.5px}
+.feed{display:flex;flex-direction:column;gap:10px}
+.alert{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.alert.amber{border-left:5px solid var(--warn)}
+.alert.red{border-left:5px solid var(--bad)}
+.alert.info{border-left:5px solid var(--ok)}
+.alert .meta{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;flex-wrap:wrap}
+.alert h4{margin:0;font-size:15.5px;font-family:var(--f-display)}
+.alert p{margin:0;font-size:13.5px}
+.phoneno{font-family:var(--f-data);background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:2px 8px;user-select:all}
+.empty{color:var(--muted);border:1px dashed var(--line);border-radius:14px;padding:22px;text-align:center;font-size:13.5px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kv div{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.kv .k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.kv .v{font-family:var(--f-data);font-size:17px;font-weight:600}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.num{font-family:var(--f-data);font-variant-numeric:tabular-nums;text-align:right}
+th.num{text-align:right}
+.tablewrap{overflow-x:auto}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi .v{font-family:var(--f-data);font-size:24px;font-weight:600;line-height:1.1}
+.kpi .k{font-size:12px;color:var(--muted)}
+.dash{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:980px){.dash{grid-template-columns:minmax(0,1fr)}}
+.map svg{width:100%;height:auto;display:block}
+.insight{background:var(--accent-soft);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.insight h4{margin:0;font-family:var(--f-display);font-size:16px}
+.insight ul{margin:0;padding-left:18px;font-size:13.5px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+.privacy{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+.flash{animation:flash 1.2s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.foot{color:var(--muted);font-size:12px;max-width:900px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:12px;font-weight:600;font-size:13.5px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="pulse" aria-hidden="true"><svg viewBox="0 0 30 30"><path d="M2 16h6l3-7 4 13 3-9 2 3h8" fill="none" stroke="#FF8A65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div>
+        <h1>SihatTown</h1>
+        <p>The health pulse of tomorrow's township · Team NADI Nexus</p>
+      </div>
+    </div>
+    <span class="tag">Working prototype · simulated data</span>
+  </header>
+
+  <div class="console">
+    <section class="steps" aria-label="Demo scenario">
+      <h2>Demo scenario</h2>
+      <ol class="steplist" id="steplist"></ol>
+      <div class="narr" id="narr" aria-live="polite"></div>
+      <div class="ctrl">
+        <button class="btn" id="back">Back</button>
+        <button class="btn primary" id="next">Next</button>
+        <button class="btn" id="reset" title="Start the scenario again">Reset</button>
+      </div>
+    </section>
+
+    <div class="phonecol">
+      <div class="phone" aria-label="Resident app">
+        <div class="screen" id="screen">
+          <div class="sbar"><span>7:05</span><span>5G ▮▮▮</span></div>
+          <div class="apphead">
+            <div><small id="greet"></small><h3 id="apptitle"></h3></div>
+            <div class="lang" role="group" aria-label="Language">
+              <button id="lang-en" aria-pressed="true">EN</button><button id="lang-bm" aria-pressed="false">BM</button>
+            </div>
+          </div>
+          <div class="appbody" id="appbody"></div>
+          <nav class="tabs" role="tablist" id="apptabs"></nav>
+          <div class="sheet" id="sheet" hidden></div>
+        </div>
+      </div>
+      <span class="lbl">Resident app · Pak Rahman, 62</span>
+    </div>
+
+    <section class="side" aria-label="Connected views">
+      <div class="sidetabs" role="tablist" id="sidetabs"></div>
+      <div class="sidebody" id="sidebody"></div>
+    </section>
+  </div>
+
+  <p class="foot">Prototype for the Sime Darby Property University Hackathon 2026 (People theme). All people, readings and precinct figures are simulated. Alert rules use the 135/85 mmHg home-reading threshold from the Malaysian hypertension clinical practice guideline; final rules would be set with the clinical partner. SihatTown is a wellness and escalation tool, not a diagnostic device.</p>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- copy (resident app is bilingual) ---------- */
+const T={
+ en:{greet:"Good morning,",name:"Pak Rahman",home:"Home",acts:"Activities",share:"Sharing",
+  take:"Take reading",latest:"Latest reading",week:"Last 7 readings",target:"home target 135/85",
+  green:"On track",amber:"Keep watch",red:"Get help now",
+  greenSub:"Your readings are steady. Keep up your routine.",
+  amberSub:a=>`Your 3-day average is ${a}, above the 135/85 home target.`,
+  redSub:"This reading is in the urgent range.",
+  adv_green:["Readings look steady. Keep up your routine.","Next check: tomorrow morning before breakfast."],
+  adv_amber:["Re-check tomorrow morning: sit for 5 minutes, then take two readings 1 minute apart.","Take your medicine at the usual time. You logged 6 of 7 doses this week.","Go easy on salty food today, such as soy sauce and instant noodles.","A 20-minute easy walk helps. A group meets at Taman Tasik at 6:30 pm."],
+  adv_red:["Sit down and rest now.","If you have chest pain, severe headache, weakness or trouble speaking, call 999 now.","Take another reading in 5 minutes.","Your clinic and Aisyah have been notified."],
+  todo:"What to do",forYou:"Suggested for you",join:"Join",joined:"Joined",pts:"Mata Sihat points",ptsSub:"Redeem at partner shops in the township",
+  shareTitle:"You decide who sees your data",
+  s_cg:"Aisyah (daughter)",s_cgp:"Gets an alert when a reading needs attention.",
+  s_cl:"Klinik Mitra Sihat",s_clp:"Receives a summary only when follow-up is needed.",
+  s_tw:"Township wellness insights",s_twp:"Adds your status anonymously to precinct totals. Your name is never shared.",
+  appt:"Teleconsult booked",apptSub:"Klinik Mitra Sihat · Mon 26 Oct, 10:00 am",
+  measuring:"Measuring… keep your arm still",cuff:"Bluetooth cuff connected",sys:"Systolic",dia:"Diastolic",pul:"Pulse",
+  symp:"I have chest pain, severe headache, weakness or trouble speaking",start:"Start measurement",cancel:"Cancel",
+  ref:"Clinic follow-up requested",refSub:"Your readings were sent to Klinik Mitra Sihat. They will contact you within 2 working days."
+ },
+ bm:{greet:"Selamat pagi,",name:"Pak Rahman",home:"Utama",acts:"Aktiviti",share:"Perkongsian",
+  take:"Ambil bacaan",latest:"Bacaan terkini",week:"7 bacaan terakhir",target:"sasaran di rumah 135/85",
+  green:"Terkawal",amber:"Perlu perhatian",red:"Dapatkan bantuan segera",
+  greenSub:"Bacaan anda stabil. Teruskan rutin anda.",
+  amberSub:a=>`Purata 3 hari anda ${a}, melebihi sasaran di rumah 135/85.`,
+  redSub:"Bacaan ini berada dalam julat kecemasan.",
+  adv_green:["Bacaan anda stabil. Teruskan rutin anda.","Semakan seterusnya: esok pagi sebelum sarapan."],
+  adv_amber:["Ukur semula esok pagi: duduk 5 minit, kemudian ambil dua bacaan dengan jarak 1 minit.","Ambil ubat pada waktu biasa. Anda merekod 6 daripada 7 dos minggu ini.","Kurangkan makanan masin hari ini, seperti kicap dan mi segera.","Berjalan santai 20 minit membantu. Ada kumpulan di Taman Tasik jam 6:30 petang."],
+  adv_red:["Duduk dan berehat sekarang.","Jika sakit dada, sakit kepala teruk, lemah atau sukar bercakap, hubungi 999 sekarang.","Ukur semula dalam 5 minit.","Klinik dan Aisyah telah dimaklumkan."],
+  todo:"Apa perlu dibuat",forYou:"Dicadangkan untuk anda",join:"Sertai",joined:"Disertai",pts:"Mata Sihat",ptsSub:"Tebus di kedai rakan kongsi dalam bandar",
+  shareTitle:"Anda tentukan siapa melihat data anda",
+  s_cg:"Aisyah (anak)",s_cgp:"Menerima amaran apabila bacaan perlu perhatian.",
+  s_cl:"Klinik Mitra Sihat",s_clp:"Menerima ringkasan hanya apabila susulan diperlukan.",
+  s_tw:"Maklumat kesejahteraan bandar",s_twp:"Status anda ditambah tanpa nama ke jumlah presint. Nama anda tidak dikongsi.",
+  appt:"Telekonsultasi ditempah",apptSub:"Klinik Mitra Sihat · Isn 26 Okt, 10:00 pagi",
+  measuring:"Sedang mengukur… jangan gerakkan lengan",cuff:"Manset Bluetooth disambung",sys:"Sistolik",dia:"Diastolik",pul:"Nadi",
+  symp:"Saya sakit dada, sakit kepala teruk, lemah atau sukar bercakap",start:"Mula mengukur",cancel:"Batal",
+  ref:"Susulan klinik dimohon",refSub:"Bacaan anda dihantar ke Klinik Mitra Sihat. Mereka akan menghubungi anda dalam 2 hari bekerja."
+ }
+};
+const ACTS=[
+ {id:"walk",en:["Easy walking group","Taman Tasik shaded loop · 1.2 km · 400 m away","Today, 6:30 pm"],bm:["Kumpulan jalan santai","Laluan teduh Taman Tasik · 1.2 km · 400 m dari rumah","Hari ini, 6:30 petang"],sug:true,pts:20},
+ {id:"screen",en:["Free BP screening day","Dewan Komuniti Presint C","Sat 24 Oct, 9 am–12 pm"],bm:["Hari saringan tekanan darah percuma","Dewan Komuniti Presint C","Sab 24 Okt, 9 pg–12 tgh"],sug:true,pts:30},
+ {id:"stretch",en:["Senior stretch class","Clubhouse studio","Tue & Thu, 8 am"],bm:["Kelas regangan warga emas","Studio rumah kelab","Sel & Kha, 8 pagi"],pts:15},
+ {id:"food",en:["Low-salt lunch menu","Kedai Makan Selera Desa · partner","10% off with Mata Sihat"],bm:["Menu makan tengah hari rendah garam","Kedai Makan Selera Desa · rakan kongsi","Diskaun 10% dengan Mata Sihat"],pts:5}
+];
+
+/* ---------- scenario ---------- */
+const STEPS=[
+ {t:"Meet Pak Rahman",n:"62, lives alone in Precinct C, managing hypertension. His daughter Aisyah works in KL. Six days of home readings, all synced from a Bluetooth cuff."},
+ {t:"Morning reading at home",n:"Wednesday, 7:05 am. He takes his reading. Click “Take reading” on the phone, or press Next.",act:"m1"},
+ {t:"SihatTown spots the trend",n:"One reading alone is not alarming. The risk engine looks at the 3-day average and the run of high readings, then moves him to Amber with plain-language advice."},
+ {t:"Community prescription",n:"Instead of only a notification, the township responds: a shaded walking group 400 m away tonight and a free screening day on Saturday. He joins and earns Mata Sihat points.",act:"join"},
+ {t:"Family stays in the loop",n:"With his consent, Aisyah gets a calm, specific alert on her phone, not raw numbers. She can mark it seen or call him."},
+ {t:"The next morning",n:"Thursday. A third reading above 135/85 in a row. Take the reading: SihatTown now requests a clinic follow-up automatically.",act:"m2"},
+ {t:"Clinic follow-up",n:"The partner clinic receives a 7-day summary, not a data dump. The nurse books a teleconsult; the appointment appears in his app.",act:"accept"},
+ {t:"The township learns",n:"Only an anonymous count reaches the township dashboard. Precinct C shows older residents, low park use and rising Amber share, so SDP gets a concrete planning recommendation."}
+];
+
+const HISTORY=[
+ {d:"Thu 15",s:126,di:80,p:74},{d:"Fri 16",s:127,di:81,p:72},{d:"Sat 17",s:125,di:80,p:75},
+ {d:"Sun 18",s:129,di:82,p:73},{d:"Mon 19",s:131,di:84,p:76},{d:"Tue 20",s:137,di:87,p:77}
+];
+const PRECINCTS=[
+ {id:"A",name:"Precinct A",enrolled:64,age:41,amber:6,park:72},
+ {id:"B",name:"Precinct B",enrolled:52,age:47,amber:6,park:61},
+ {id:"C",name:"Precinct C",enrolled:46,age:63,amber:10,park:28},
+ {id:"D",name:"Precinct D",enrolled:71,age:38,amber:5,park:80},
+ {id:"E",name:"Precinct E",enrolled:33,age:55,amber:5,park:45},
+ {id:"F",name:"Precinct F",enrolled:8,age:null,amber:null,park:null}
+];
+
+let S;
+function init(){
+ return {step:0,lang:S?S.lang:"en",tab:"home",side:"care",readings:HISTORY.map(r=>({...r})),
+  consent:{cg:true,cl:true,tw:true},joined:{},points:120,
+  cgFeed:[],cgSeen:{},referral:null,appt:false,contributed:false,symptomsLast:false,done:{}};
+}
+
+/* ---------- risk engine ---------- */
+function classify(rs,sym){
+ const L=rs[rs.length-1],l3=rs.slice(-3);
+ const aS=Math.round(l3.reduce((a,r)=>a+r.s,0)/l3.length),aD=Math.round(l3.reduce((a,r)=>a+r.di,0)/l3.length);
+ let run=0;for(let i=rs.length-1;i>=0;i--){if(rs[i].s>=135||rs[i].di>=85)run++;else break}
+ const l5=rs.slice(-5),n=l5.length,mx=(n-1)/2,my=l5.reduce((a,r)=>a+r.s,0)/n;
+ let num=0,den=0;l5.forEach((r,i)=>{num+=(i-mx)*(r.s-my);den+=(i-mx)*(i-mx)});
+ const slope=den?num/den:0;
+ let level="green";
+ if(L.s>=180||L.di>=110||sym)level="red";
+ else if(aS>=135||aD>=85||run>=2)level="amber";
+ return {level,avg:`${aS}/${aD}`,aS,aD,run,slope,referral:level==="red"||run>=3,latest:L};
+}
+
+/* ---------- actions ---------- */
+function addReading(r,sym,silent){
+ S.readings.push(r);S.symptomsLast=!!sym;
+ const c=classify(S.readings,sym);
+ if(c.level!=="green"&&S.consent.cg){
+  S.cgFeed.unshift({id:"a"+S.readings.length,level:c.level,when:r.d+", "+(r.t||"7:05 am"),reading:`${r.s}/${r.di}`,avg:c.avg,run:c.run});
+ }
+ if(c.referral&&S.consent.cl&&!S.referral){
+  S.referral={when:r.d+", "+(r.t||"7:06 am"),c,urgent:c.level==="red",status:"new"};
+  if(S.consent.cg&&c.level!=="red")S.cgFeed.unshift({id:"r"+S.readings.length,level:"info",when:r.d+", 7:06 am",kind:"ref"});
+ }
+ if(c.level!=="green"&&S.consent.tw&&!S.contributed){S.contributed=true}
+ if(!silent)toast(c.level==="red"?"Urgent reading: caregiver and clinic notified":"Reading saved and analysed");
+}
+const ACTIONS={
+ m1:silent=>addReading({d:"Wed 21",s:146,di:93,p:78,t:"7:05 am"},false,silent),
+ join:silent=>{["walk","screen"].forEach(id=>{if(!S.joined[id]){S.joined[id]=true;S.points+=ACTS.find(a=>a.id===id).pts}});if(!silent)toast("Joined: +50 Mata Sihat points")},
+ m2:silent=>addReading({d:"Thu 22",s:144,di:92,p:76,t:"7:02 am"},false,silent),
+ accept:silent=>{if(S.referral){S.referral.status="booked";S.appt=true}if(!silent)toast("Teleconsult booked for Mon 26 Oct, 10:00 am")}
+};
+const SCRIPTED={m1:{s:146,di:93,p:78},m2:{s:144,di:92,p:76}};
+const SIDE_FOR=[ "care","care","care","care","care","clinic","clinic","town"];
+
+function rebuild(k){
+ const lang=S.lang;S=init();S.lang=lang;
+ for(let j=0;j<k;j++){const a=STEPS[j].act;if(a){ACTIONS[a](true);S.done[a]=true}}
+ S.step=k;S.side=SIDE_FOR[k];S.tab=k===3?"acts":"home";
+}
+
+/* ---------- rendering helpers ---------- */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const t=k=>T[S.lang][k];
+let toastTimer;
+function toast(msg){const el=$("toast");el.textContent=msg;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.hidden=true,2600)}
+
+function chartSVG(rs){
+ const W=320,H=150,pl=30,pr=10,pt=10,pb=24,lo=60,hi=190;
+ const pts=rs.slice(-7);const n=pts.length;
+ const x=i=>pl+(n===1?0:i*(W-pl-pr)/(n-1)),y=v=>pt+(hi-v)*(H-pt-pb)/(hi-lo);
+ let g="";
+ [80,120,160].forEach(v=>{g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${v}</text>`});
+ [135,85].forEach(v=>{g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--warn)" stroke-dasharray="4 4" stroke-width="1.2"/>`});
+ g+=`<text x="${W-pr}" y="${y(135)-4}" text-anchor="end" font-size="9.5" fill="var(--warn)" font-family="IBM Plex Mono,monospace">135</text><text x="${W-pr}" y="${y(85)-4}" text-anchor="end" font-size="9.5" fill="var(--warn)" font-family="IBM Plex Mono,monospace">85</text>`;
+ const line=(k,col)=>{const d=pts.map((r,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(r[k]).toFixed(1)}`).join("");
+  let s=`<path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  pts.forEach((r,i)=>{const hiR=k==="s"?r.s>=135:r.di>=85;const last=i===n-1;s+=`<circle cx="${x(i)}" cy="${y(r[k])}" r="${last?4.5:3}" fill="${hiR?"var(--warn)":col}" stroke="var(--surface)" stroke-width="1.5"/>`});return s};
+ g+=line("s","var(--ink)")+line("di","var(--accent)");
+ pts.forEach((r,i)=>{g+=`<text x="${x(i)}" y="${H-6}" text-anchor="middle" font-size="9.5" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${r.d.split(" ")[1]}</text>`});
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Systolic and diastolic readings over the last 7 days, with the 135/85 target lines">${g}</svg>`;
+}
+
+function phoneHTML(){
+ const c=classify(S.readings,S.symptomsLast);
+ const L=c.latest;
+ const pending=STEPS[S.step]&&(STEPS[S.step].act==="m1"||STEPS[S.step].act==="m2")&&!S.done[STEPS[S.step].act];
+ if(S.tab==="home"){
+  const sub=c.level==="green"?t("greenSub"):c.level==="amber"?t("amberSub")(c.avg):t("redSub");
+  const adv=t("adv_"+c.level);
+  let h=`<div class="status ${c.level}" id="statuscard">
+   <span class="chip ${c.level}">${t(c.level)}</span>
+   <div class="reading"><span class="big">${L.s}/${L.di}</span><span class="unit">mmHg · ${S.lang==="en"?"pulse":"nadi"} ${L.p}</span></div>
+   <p>${esc(sub)}</p></div>
+   <button class="measure${pending?" hint":""}" id="takebtn"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10-5 5V2l5 5L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>${t("take")}</button>`;
+  if(S.appt)h+=`<div class="card appt"><div class="lbl">${t("appt")}</div><div style="font-weight:700;margin-top:2px">${t("apptSub")}</div></div>`;
+  else if(S.referral)h+=`<div class="card appt"><div class="lbl">${t("ref")}</div><div style="font-size:13px;margin-top:2px">${t("refSub")}</div></div>`;
+  h+=`<div class="card"><div class="lbl" style="margin-bottom:8px">${t("todo")}</div><ul class="advice">${adv.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div>`;
+  h+=`<div class="card chart"><div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;margin-bottom:4px"><span class="lbl">${t("week")}</span><span class="lbl" style="color:var(--warn)">- - ${t("target")}</span></div>${chartSVG(S.readings)}</div>`;
+  return h;
+ }
+ if(S.tab==="acts"){
+  let h=`<div class="card points"><div><div class="lbl">${t("pts")}</div><div style="font-size:12px;color:var(--muted)">${t("ptsSub")}</div></div><span class="mono" id="pts">${S.points}</span></div>`;
+  ACTS.forEach(a=>{const L=a[S.lang];const j=!!S.joined[a.id];
+   h+=`<div class="card act">${a.sug&&c.level!=="green"?`<span class="sug">${t("forYou")}</span>`:""}<div class="row"><div><h5>${esc(L[0])}</h5><p>${esc(L[1])}</p><p style="color:var(--ink);font-weight:600;margin-top:2px">${esc(L[2])}</p></div><button class="join${j?" joined":""}" data-join="${a.id}" aria-pressed="${j}">${j?t("joined"):t("join")+" +"+a.pts}</button></div></div>`});
+  return h;
+ }
+ const tg=(k,h,p)=>`<label class="toggle"><span><h5>${h}</h5><p>${p}</p></span><input type="checkbox" class="sw" id="c-${k}" data-consent="${k}" ${S.consent[k]?"checked":""}></label>`;
+ return `<div class="card"><div class="lbl" style="margin-bottom:4px">${t("shareTitle")}</div>${tg("cg",t("s_cg"),t("s_cgp"))}${tg("cl",t("s_cl"),t("s_clp"))}${tg("tw",t("s_tw"),t("s_twp"))}</div>
+ <div class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="flex:none;margin-top:2px"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>PDPA 2010: consent per recipient, revocable at any time. Data stays encrypted; the township only sees groups of 10 or more.</span></div>`;
+}
+
+function tabsHTML(){
+ const ic={home:'<path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  acts:'<circle cx="12" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 22l2-7-3-3 2-4 4 1 2 4 3 1M11 15l3 2v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  share:'<circle cx="6" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.6 10.6l6.8-4M8.6 13.4l6.8 4" stroke="currentColor" stroke-width="2"/>'};
+ return ["home","acts","share"].map(k=>`<button role="tab" aria-selected="${S.tab===k}" data-tab="${k}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k]}</svg>${t(k)}</button>`).join("");
+}
+
+function sideTabsHTML(){
+ const unseen=S.cgFeed.filter(a=>!S.cgSeen[a.id]).length;
+ const ref=S.referral&&S.referral.status==="new"?1:0;
+ const b=(k,label,n)=>`<button role="tab" aria-selected="${S.side===k}" data-side="${k}">${label}${n?`<span class="badge">${n}</span>`:""}</button>`;
+ return b("care","Caregiver · Aisyah",unseen)+b("clinic","Partner clinic",ref)+b("town","Township dashboard",0);
+}
+
+function careHTML(){
+ let h=`<div class="who"><div class="avatar">A</div><div><h3>Aisyah's phone</h3><p>Daughter · Kuala Lumpur · caregiver mode</p></div></div>`;
+ if(!S.consent.cg)return h+`<div class="empty">Pak Rahman has paused sharing with you. You will not receive alerts until he turns it back on.</div>`;
+ if(!S.cgFeed.length)return h+`<div class="empty">No alerts. Ayah's readings are within his usual range.<br>You only hear from SihatTown when something needs attention.</div>`;
+ h+=`<div class="feed">`;
+ S.cgFeed.forEach(a=>{
+  const seen=!!S.cgSeen[a.id];
+  if(a.kind==="ref"){h+=`<div class="alert info"><div class="meta"><span class="chip green">Update</span><span>${esc(a.when)}</span></div><h4>Clinic follow-up arranged for Ayah</h4><p>His readings were shared with Klinik Mitra Sihat, as he agreed. The clinic will contact him within 2 working days.</p></div>`;return}
+  if(a.level==="red"){h+=`<div class="alert red"><div class="meta"><span class="chip red">Urgent</span><span>${esc(a.when)}</span></div><h4>Ayah's reading ${esc(a.reading)} is in the urgent range</h4><p>He has been told to rest and call 999 if he has chest pain, severe headache or weakness. His clinic has been notified.</p><div class="row-actions"><span>Call Ayah: <span class="phoneno">+60 12-000 0000</span></span><button class="btn sm" data-seen="${a.id}" ${seen?"disabled":""}>${seen?"Seen":"Mark as seen"}</button></div></div>`;return}
+  h+=`<div class="alert amber"><div class="meta"><span class="chip amber">Keep watch</span><span>${esc(a.when)}</span></div>
+   <h4>Ayah's blood pressure has been above target for ${a.run} days</h4>
+   <p>Latest ${esc(a.reading)}, 3-day average ${esc(a.avg)} mmHg. He has been advised to re-check tomorrow, take his medicine as usual and join the 6:30 pm walking group. A quick call to check in helps.</p>
+   <div class="row-actions"><span>Call Ayah: <span class="phoneno">+60 12-000 0000</span></span><button class="btn sm" data-seen="${a.id}" ${seen?"disabled":""}>${seen?"Seen":"Mark as seen"}</button></div></div>`;
+ });
+ return h+`</div>`;
+}
+
+function clinicHTML(){
+ let h=`<div class="who"><div class="avatar">K</div><div><h3>Klinik Mitra Sihat</h3><p>Partner clinic · nurse follow-up queue</p></div></div>`;
+ if(!S.referral)return h+`<div class="empty">No referrals from SihatTown residents today.<br>Referrals arrive only when a resident's trend needs review and they have consented.</div>`;
+ const r=S.referral,c=r.c,last7=S.readings.slice(-7);
+ const avg7=Math.round(last7.reduce((a,x)=>a+x.s,0)/last7.length)+"/"+Math.round(last7.reduce((a,x)=>a+x.di,0)/last7.length);
+ h+=`<div class="alert ${r.urgent?"red":"amber"}${r.status==="new"?" flash":""}">
+  <div class="meta"><span class="chip ${r.urgent?"red":"amber"}">${r.urgent?"Urgent":"Routine review · within 7 days"}</span><span>Received ${esc(r.when)}</span></div>
+  <h4>Rahman bin Ahmad · 62 · M · Presint C</h4>
+  <p>Reason: ${r.urgent?"single reading in urgent range":`${c.run} consecutive home readings at or above 135/85`}.</p>
+  <div class="kv">
+   <div><div class="k">Latest</div><div class="v">${c.latest.s}/${c.latest.di}</div></div>
+   <div><div class="k">3-day avg</div><div class="v">${c.avg}</div></div>
+   <div><div class="k">7-day avg</div><div class="v">${avg7}</div></div>
+   <div><div class="k">Systolic trend</div><div class="v">${c.slope>=0?"+":""}${c.slope.toFixed(1)}/day</div></div>
+   <div><div class="k">Medication</div><div class="v" style="font-size:14px">Amlodipine 5 mg</div></div>
+   <div><div class="k">Doses logged</div><div class="v">6 of 7</div></div>
+  </div>
+  <p style="color:var(--muted);font-size:12.5px">Self-reported medication. Device: validated upper-arm cuff, readings synced via Bluetooth. Lifestyle: joined walking group and screening day.</p>
+  ${r.status==="booked"?`<div class="alert info" style="margin:0"><h4>Teleconsult booked · Mon 26 Oct, 10:00 am</h4><p>Confirmation sent to the resident app. Caregiver informed.</p></div>`:
+  `<div class="row-actions"><button class="btn primary" style="flex:none" id="acceptbtn">Book teleconsult · Mon 26 Oct, 10:00 am</button><button class="btn" id="inperson">Request in-person visit</button></div>`}
+ </div>`;
+ return h;
+}
+
+function townHTML(){
+ const P=PRECINCTS.map(p=>({...p}));
+ const c=P.find(p=>p.id==="C");if(S.contributed&&S.consent.tw)c.amber+=1;
+ const share=p=>p.amber==null?null:p.amber/p.enrolled;
+ const col=v=>v==null?"var(--surface-2)":v>=.2?"var(--bad)":v>=.14?"var(--warn)":v>=.1?"color-mix(in srgb,var(--warn) 45%,var(--surface))":"var(--ok-soft)";
+ const tile=(p,x,y,w,h)=>{const v=share(p);const strong=v!=null&&v>=.14;const txt=strong?"#fff":"var(--ink)";
+  return `<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="${col(v)}" stroke="var(--line)"/>
+  <text x="${x+12}" y="${y+22}" font-size="13" font-weight="700" fill="${txt}" font-family="Plus Jakarta Sans,sans-serif">${p.name}</text>
+  <text x="${x+12}" y="${y+44}" font-size="20" font-weight="600" fill="${txt}" font-family="IBM Plex Mono,monospace">${v==null?"n<10":Math.round(v*100)+"%"}</text>
+  <text x="${x+12}" y="${y+62}" font-size="10.5" fill="${txt}" font-family="Plus Jakarta Sans,sans-serif">${v==null?"suppressed":"Amber share"}</text></g>`};
+ const map=`<svg viewBox="0 0 420 300" role="img" aria-label="Schematic township map shaded by the share of enrolled residents in Amber">
+  <rect x="0" y="0" width="420" height="300" rx="14" fill="var(--surface-2)"/>
+  <path d="M150 120 C190 100 240 110 270 130 C290 145 280 175 250 180 C210 188 170 175 150 160 C135 148 135 128 150 120Z" fill="var(--water)"/>
+  <rect x="130" y="100" width="160" height="100" rx="40" fill="none" stroke="var(--park)" stroke-width="14" opacity=".9"/>
+  <text x="210" y="155" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="Plus Jakarta Sans,sans-serif">Taman Tasik</text>
+  ${tile(P[0],12,12,128,78)}${tile(P[1],146,12,128,78)}${tile(P[3],280,12,128,78)}
+  ${tile(P[2],12,210,128,78)}${tile(P[4],146,210,128,78)}${tile(P[5],280,210,128,78)}
+  <rect x="10" y="208" width="132" height="82" rx="12" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="6 4"/>
+ </svg>`;
+ let rows=P.map(p=>p.amber==null?`<tr><td>${p.name}</td><td class="num">${p.enrolled}</td><td class="num" colspan="3" style="text-align:left;color:var(--muted)">Group under 10, figures suppressed</td></tr>`:
+  `<tr${p.id==="C"?' style="font-weight:700"':""}><td>${p.name}</td><td class="num">${p.enrolled}</td><td class="num">${p.age}</td><td class="num">${p.amber}${p.id==="C"&&S.contributed&&S.consent.tw?' <span style="color:var(--warn)">(+1)</span>':""}</td><td class="num">${p.park}%</td></tr>`).join("");
+ const totalAmber=P.reduce((a,p)=>a+(p.amber||0),0);
+ return `<div class="who"><div class="avatar">T</div><div><h3>Township Health Digital Twin</h3><p>For the township operator · anonymised precinct view · week of 19 Oct</p></div></div>
+ <div class="kpis">
+  <div class="kpi"><div class="v">274</div><div class="k">households enrolled</div></div>
+  <div class="kpi"><div class="v">1,486</div><div class="k">readings this week</div></div>
+  <div class="kpi"><div class="v">312</div><div class="k">activity sign-ups</div></div>
+  <div class="kpi"><div class="v">${S.appt?"19":"18"} / ${S.referral?"24":"23"}</div><div class="k">clinic follow-ups completed</div></div>
+ </div>
+ <div class="dash">
+  <div class="map">${map}
+   <div class="legend" style="margin-top:8px"><span><i style="background:var(--ok-soft);border:1px solid var(--line)"></i>under 10%</span><span><i style="background:color-mix(in srgb,var(--warn) 45%,var(--surface))"></i>10–14%</span><span><i style="background:var(--warn)"></i>14–20%</span><span><i style="background:var(--bad)"></i>20% and above</span></div>
+  </div>
+  <div class="insight"><span class="lbl" style="color:var(--accent)">Planning recommendation</span><h4>Precinct C: older residents, low park use, highest Amber share</h4>
+    <ul><li>Shade the 1.2 km Taman Tasik loop and add benches every 200 m</li><li>Run a weekly BP screening at Dewan Komuniti Presint C</li><li>Start a 6:30 pm walking group with a volunteer lead</li></ul>
+    <span style="font-size:12.5px;color:var(--muted)">Measure: park use and Amber share in Precinct C over the 12-week pilot.</span></div>
+ </div>
+ <div class="tablewrap"><table><thead><tr><th>Precinct</th><th class="num">Enrolled</th><th class="num">Median age</th><th class="num">In Amber</th><th class="num">Park use</th></tr></thead><tbody>${rows}</tbody></table></div>
+ <div class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="flex:none;margin-top:2px"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>No names, readings or addresses reach this view. Only consented, aggregated counts; any group under 10 residents is suppressed. ${S.contributed&&S.consent.tw?"This week one more Precinct C resident moved to Amber; the dashboard cannot tell who.":""} Total in Amber: ${totalAmber}.</span></div>`;
+}
+
+/* ---------- measurement sheet ---------- */
+function openSheet(){
+ const a=STEPS[S.step]&&STEPS[S.step].act;const pre=SCRIPTED[a]&&!S.done[a]?SCRIPTED[a]:{s:132,di:84,p:74};
+ const sh=$("sheet");
+ sh.innerHTML=`<div class="panel" role="dialog" aria-label="${t("take")}"><h4>${t("take")}</h4>
+  <div class="lbl" style="color:var(--ok)">● ${t("cuff")}</div>
+  <div class="fields">
+   <label>${t("sys")}<input id="in-s" type="number" inputmode="numeric" min="60" max="260" value="${pre.s}"></label>
+   <label>${t("dia")}<input id="in-d" type="number" inputmode="numeric" min="30" max="160" value="${pre.di}"></label>
+   <label>${t("pul")}<input id="in-p" type="number" inputmode="numeric" min="30" max="200" value="${pre.p}"></label>
+  </div>
+  <label class="symp"><input type="checkbox" id="in-sym">${t("symp")}</label>
+  <div class="row-actions"><button class="btn primary" id="startm">${t("start")}</button><button class="btn" id="cancelm">${t("cancel")}</button></div>
+  <span style="font-size:11.5px;color:var(--muted)">Values are pre-filled by the simulated cuff. Edit them to test other cases, e.g. 186/114.</span></div>`;
+ sh.hidden=false;
+ $("cancelm").onclick=()=>{sh.hidden=true};
+ $("startm").onclick=()=>{
+  const s=+$("in-s").value,d=+$("in-d").value,p=+$("in-p").value,sym=$("in-sym").checked;
+  if(!(s>=60&&s<=260&&d>=30&&d<=160&&p>=30&&p<=200)){toast("Enter systolic 60–260, diastolic 30–160 and pulse 30–200");return}
+  runMeasure(s,d,p,sym);
+ };
+}
+function runMeasure(s,d,p,sym){
+ const sh=$("sheet");
+ const finish=()=>{
+  sh.hidden=true;
+  const a=STEPS[S.step]&&STEPS[S.step].act;
+  const scripted=SCRIPTED[a]&&!S.done[a]&&SCRIPTED[a].s===s&&SCRIPTED[a].di===d&&!sym;
+  if(scripted){ACTIONS[a](false);S.done[a]=true;if(a==="m1"){S.step=2;S.side="care"}}
+  else{const day=S.readings.length>=8?"Fri 23":S.readings.length>=7?"Thu 22":"Wed 21";addReading({d:day,s,di:d,p,t:"7:10 am"},sym,false)}
+  S.tab="home";render();const sc=$("statuscard");if(sc){sc.classList.add("flash")}
+ };
+ if(reduce){finish();return}
+ sh.innerHTML=`<div class="panel"><h4>${t("take")}</h4><div class="gauge"><svg viewBox="0 0 170 170" aria-hidden="true"><circle cx="85" cy="85" r="70" fill="none" stroke="var(--line)" stroke-width="12"/><circle id="arc" cx="85" cy="85" r="70" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440" transform="rotate(-90 85 85)"/></svg><div class="val" id="gv">0</div><div style="color:var(--muted);font-size:13px">${t("measuring")}</div></div></div>`;
+ sh.hidden=false;
+ const t0=performance.now(),dur=2600,peak=Math.max(170,s+25);
+ (function tick(now){const k=Math.min(1,(now-t0)/dur);
+  const v=k<.45?peak*(k/.45):peak-(peak-d)*((k-.45)/.55);
+  const gv=$("gv"),arc=$("arc");if(gv)gv.textContent=Math.round(v);if(arc)arc.setAttribute("stroke-dashoffset",String(440-440*Math.min(1,v/220)));
+  if(k<1)requestAnimationFrame(tick);else finish()})(t0);
+}
+
+/* ---------- main render ---------- */
+function render(){
+ $("steplist").innerHTML=STEPS.map((s,i)=>`<li class="${i<S.step?"done":""}${i===S.step?" on":""}"><button data-step="${i}" aria-current="${i===S.step?"step":"false"}"><span class="n">${i+1}</span><span class="t">${esc(s.t)}</span></button></li>`).join("");
+ $("narr").innerHTML=`<b>${S.step+1}. ${esc(STEPS[S.step].t)}</b>${esc(STEPS[S.step].n)}`;
+ $("back").disabled=S.step===0;
+ const a=STEPS[S.step].act;
+ const label=a&&!S.done[a]?(a==="m1"||a==="m2"?"Take reading":a==="join"?"Join":"Book teleconsult"):S.step===STEPS.length-1?"Done":"Next";
+ $("next").textContent=label;$("next").disabled=S.step===STEPS.length-1&&!(a&&!S.done[a]);
+ $("greet").textContent=t("greet");$("apptitle").textContent=t("name");
+ $("lang-en").setAttribute("aria-pressed",S.lang==="en");$("lang-bm").setAttribute("aria-pressed",S.lang==="bm");
+ $("appbody").innerHTML=phoneHTML();$("apptabs").innerHTML=tabsHTML();
+ $("sidetabs").innerHTML=sideTabsHTML();
+ $("sidebody").innerHTML=S.side==="care"?careHTML():S.side==="clinic"?clinicHTML():townHTML();
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b)return;
+ if(b.dataset.step!=null){rebuild(+b.dataset.step);render();return}
+ if(b.dataset.tab){S.tab=b.dataset.tab;render();return}
+ if(b.dataset.side){S.side=b.dataset.side;render();return}
+ if(b.dataset.join){const id=b.dataset.join;const act=ACTS.find(x=>x.id===id);
+  if(S.joined[id]){delete S.joined[id];S.points-=act.pts}else{S.joined[id]=true;S.points+=act.pts;toast(`Joined: +${act.pts} Mata Sihat points`)}
+  if(STEPS[S.step].act==="join"&&S.joined.walk&&S.joined.screen)S.done.join=true;render();return}
+ if(b.dataset.seen){S.cgSeen[b.dataset.seen]=true;render();return}
+ if(b.id==="takebtn"){openSheet();return}
+ if(b.id==="acceptbtn"){ACTIONS.accept(false);S.done.accept=true;render();return}
+ if(b.id==="inperson"){toast("In-person visit request sent to the resident");return}
+});
+document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.consent;if(k){S.consent[k]=e.target.checked;toast(e.target.checked?"Sharing turned on":"Sharing turned off");render()}});
+$("lang-en").onclick=()=>{S.lang="en";render()};
+$("lang-bm").onclick=()=>{S.lang="bm";render()};
+$("back").onclick=()=>{if(S.step>0){rebuild(S.step-1);render()}};
+$("reset").onclick=()=>{rebuild(0);render()};
+$("next").onclick=()=>{
+ const a=STEPS[S.step].act;
+ if(a&&!S.done[a]){
+  if(a==="m1"||a==="m2"){S.tab="home";render();const p=SCRIPTED[a];runMeasure(p.s,p.di,p.p,false);return}
+  if(a==="join"){S.tab="acts";ACTIONS.join(false);S.done.join=true;render();return}
+  if(a==="accept"){S.side="clinic";ACTIONS.accept(false);S.done.accept=true;render();return}
+ }
+ if(S.step<STEPS.length-1){S.step++;S.side=SIDE_FOR[S.step];S.tab=S.step===3?"acts":"home";render()}
+};
+
+S=init();rebuild(0);render();
+})();
+</script>
+
+</body>
+</html>
